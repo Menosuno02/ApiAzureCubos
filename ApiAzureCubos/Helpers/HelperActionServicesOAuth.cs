@@ -13,8 +13,6 @@ namespace ApiAzureCubos.Helpers
         public string SecretKey { get; set; }
         private SecretClient secretClient;
 
-        
-
         public HelperActionServicesOAuth
             (SecretClient secretClient)
         {

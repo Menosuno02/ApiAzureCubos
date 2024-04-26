@@ -1,5 +1,6 @@
 ﻿using ApiAzureCubos.Data;
 using ApiAzureCubos.Models;
+using Azure.Security.KeyVault.Secrets;
 using Microsoft.EntityFrameworkCore;
 
 namespace ApiAzureCubos.Repositories
@@ -7,16 +8,24 @@ namespace ApiAzureCubos.Repositories
     public class RepositoryCubos
     {
         private CubosContext context;
+        private SecretClient secretClient;
+        private string BlobCubos;
 
-        public RepositoryCubos(CubosContext context)
+        public RepositoryCubos(CubosContext context, SecretClient secretClient)
         {
             this.context = context;
+            this.secretClient = secretClient;
+            Task.Run(async () =>
+            {
+                KeyVaultSecret secretBlob = await this.secretClient.GetSecretAsync("BlobCubos");
+                this.BlobCubos = secretBlob.Value;
+            });
         }
 
         public async Task<List<Cubo>> GetCubosAsync()
         {
             List<Cubo> cubos = await this.context.Cubos.ToListAsync();
-            cubos.ForEach(c => c.Imagen = "https://storageaccountexamen.blob.core.windows.net/cubos/" + c.Imagen);
+            cubos.ForEach(c => c.Imagen = this.BlobCubos + c.Imagen);
             return cubos;
         }
 
@@ -25,7 +34,7 @@ namespace ApiAzureCubos.Repositories
             List<Cubo> cubos = await this.context.Cubos
                 .Where(c => c.Marca == marca)
                 .ToListAsync();
-            cubos.ForEach(c => c.Imagen = "https://storageaccountexamen.blob.core.windows.net/cubos/" + c.Imagen);
+            cubos.ForEach(c => c.Imagen = this.BlobCubos + c.Imagen);
             return cubos;
         }
 

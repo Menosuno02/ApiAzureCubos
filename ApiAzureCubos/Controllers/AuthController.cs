@@ -1,6 +1,7 @@
 ﻿using ApiAzureCubos.Helpers;
 using ApiAzureCubos.Models;
 using ApiAzureCubos.Repositories;
+using Azure.Security.KeyVault.Secrets;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -17,11 +18,19 @@ namespace ApiAzureCubos.Controllers
     {
         private RepositoryCubos repo;
         private HelperActionServicesOAuth helper;
+        private SecretClient secretClient;
+        private string BlobUsuarios;
 
-        public AuthController(RepositoryCubos repo, HelperActionServicesOAuth helper)
+        public AuthController(RepositoryCubos repo, HelperActionServicesOAuth helper, SecretClient secretClient)
         {
             this.repo = repo;
             this.helper = helper;
+            this.secretClient = secretClient;
+            Task.Run(async () =>
+            {
+                KeyVaultSecret secretBlob = await this.secretClient.GetSecretAsync("BlobUsuarios");
+                this.BlobUsuarios = secretBlob.Value;
+            });
         }
 
         [HttpPost]
@@ -35,7 +44,7 @@ namespace ApiAzureCubos.Controllers
             {
                 SigningCredentials credentials =
                     new SigningCredentials(helper.GetKeyToken(), SecurityAlgorithms.HmacSha256);
-                usuario.Imagen = "https://storageaccountexamen.blob.core.windows.net/usuarios/" + usuario.Imagen;
+                usuario.Imagen = this.BlobUsuarios + usuario.Imagen;
                 string jsonUsuario = JsonConvert.SerializeObject(usuario);
                 Claim[] infoUsuario = new Claim[]
                 {
